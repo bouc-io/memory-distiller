@@ -1,0 +1,15 @@
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+env
+venv
+.env
+.venv
+.git
+.gitignore
+.gitlab-ci.yml
+# Exclude design documents and documentation not needed for runtime
+README.md
+memory_distiller_design.txt
