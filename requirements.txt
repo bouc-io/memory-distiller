@@ -1,0 +1,10 @@
+requests==2.33.0
+fastapi==0.109.2
+uvicorn==0.27.1
+pydantic==2.6.1
+python-dotenv==1.2.2
+# Observability — OTLP traces+metrics to the OTel collector + a Prometheus /metrics endpoint.
+prometheus-client==0.20.0
+opentelemetry-sdk==1.25.0
+opentelemetry-exporter-otlp-proto-http==1.25.0
+opentelemetry-instrumentation-fastapi==0.46b0
