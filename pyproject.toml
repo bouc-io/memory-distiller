@@ -1,0 +1,26 @@
+[tool.ruff]
+# Matches the python:3.11 image used by the Dockerfile and the CI jobs.
+target-version = "py311"
+line-length = 100
+exclude = [".git", "__pycache__", ".pytest_cache", "build", "dist"]
+
+[tool.ruff.lint]
+# E/W pycodestyle, F pyflakes, I import sorting, B bugbear, UP pyupgrade.
+# Together these replace flake8 + isort + a pyupgrade pass.
+select = ["E", "W", "F", "I", "B", "UP"]
+# `ruff format` already enforces line length everywhere it can. The only remaining
+# violations are inside strings it cannot split: long log and error messages in
+# assignment_config_client.py and main.py. Prompt text now lives in prompts/*.md,
+# which ruff does not lint at all.
+ignore = ["E501"]
+
+[tool.ruff.format]
+quote-style = "double"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.coverage.run]
+# Flat module layout: everything at the repo root is the package.
+source = ["."]
+omit = ["tests/*", "*/__pycache__/*"]

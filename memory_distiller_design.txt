@@ -1,0 +1,315 @@
+“What knowledge artifacts should survive beyond this interaction?”
+That implies selection → abstraction → normalization.
+Distillation pipeline
+Raw transcript / agent trace
+   ↓
+Event segmentation
+   ↓
+Memory-worthiness detection
+   ↓
+Memory type classification
+   ↓
+Atomic memory synthesis
+   ↓
+Scoring (confidence, importance)
+   ↓
+Emit structured memory objects
+
+
+2. Core Heuristics (Before Code)
+A. What is “memory-worthy”?
+From research consensus, a memory is worthy if at least one holds:
+Introduces a new fact
+Corrects a previous misconception
+Encodes a preference
+Describes a reusable procedure
+Represents a decision or outcome
+Changes the agent’s future behavior
+This is not deterministic → LLM judgment + guardrails.
+
+B. Confidence score (what does it mean?)
+Confidence ≠ importance
+Confidence answers:
+“How likely is this memory to be correct and stable?”
+Typical signals:
+Explicit confirmation by user
+Repetition across turns
+Declarative phrasing
+Absence of contradiction
+Confidence is best produced by the LLM with justification, then normalized.
+C. Importance score (what does it mean?)
+Importance answers:
+“How often should this memory influence future behavior?”
+Signals:
+Applies across many contexts
+User-specific vs global
+Long-term relevance
+Task-critical vs incidental
+Importance can later drive:
+Retrieval weighting
+Consolidation priority
+Eviction policy
+
+
+
+Python Pseudocode (Memory Distiller)
+High-level structure
+class MemoryDistiller:
+
+    def distill(self, source_type, source_id, full_context, metadata):
+        """
+        Main entrypoint.
+        Converts raw interaction context into structured memory objects.
+        """
+
+        events = self.segment_events(full_context)
+
+        candidate_memories = []
+
+        for event in events:
+            if self.is_memory_worthy(event):
+                memory = self.synthesize_memory(event, metadata)
+                scored_memory = self.score_memory(memory, event)
+                candidate_memories.append(scored_memory)
+
+        return self.deduplicate(candidate_memories)
+Step 1 — Event segmentation
+def segment_events(self, full_context):
+    """
+    Breaks long context into semantically coherent events.
+    This prevents 'one giant summary' syndrome.
+    """
+
+    prompt = f"""
+    Split the following interaction into discrete events.
+    Each event should represent a single idea, decision, correction,
+    or outcome.
+
+    Output as a JSON array of event objects with:
+    - text
+    - event_type (fact, correction, preference, procedure, outcome)
+    """
+
+    return call_llm(prompt, full_context)
+
+
+Step 2 — Memory-worthiness detection
+def is_memory_worthy(self, event):
+    """
+    Ask the model to judge whether this event should persist beyond
+    the current session.
+    """
+
+    prompt = f"""
+    Decide if the following event is worth storing as long-term memory.
+
+    Criteria:
+    - Would forgetting this reduce future performance?
+    - Is this reusable knowledge?
+    - Is this user-specific or system-shaping?
+
+    Respond with:
+    - worthy: true/false
+    - reason
+    """
+
+    result = call_llm(prompt, event["text"])
+    return result["worthy"]
+Important
+This is intentionally subjective
+You want fewer, higher-quality memories
+Step 3 — Memory synthesis (atomic!)
+def synthesize_memory(self, event, metadata):
+    """
+    Convert raw event into a clean, standalone memory statement.
+    """
+
+    prompt = f"""
+    Rewrite the following event as a single, atomic memory.
+    Requirements:
+    - Self-contained
+    - No conversational references
+    - Declarative tone
+    - Maximum 2 sentences
+
+    Classify the memory as:
+    - episodic
+    - semantic
+    - procedural
+    """
+
+    result = call_llm(prompt, event["text"])
+
+    return {
+        "type": result["type"],
+        "content": result["memory"],
+        "tags": self.extract_tags(result["memory"], metadata),
+    }
+Key insight
+If a memory cannot stand alone, it is not a memory — it’s a log.
+
+Step 4 — Scoring (confidence + importance)
+def score_memory(self, memory, event):
+    """
+    Assign confidence and importance scores.
+    """
+
+    prompt = f"""
+    Given the memory below, assign:
+    - confidence: likelihood the memory is correct and stable (0-1)
+    - importance: impact on future behavior (0-1)
+
+    Justify briefly.
+    """
+
+    result = call_llm(prompt, memory["content"])
+
+    memory["confidence"] = float(result["confidence"])
+    memory["importance"] = float(result["importance"])
+
+    return memory
+Later, you can blend LLM scores with heuristics:
+user-confirmed → +0.1 confidence
+repeated across events → +0.1 confidence
+Step 5 — Deduplication / normalization
+def deduplicate(self, memories):
+    """
+    Remove near-duplicate memories.
+    Uses embeddings + cosine similarity.
+    """
+
+    unique = []
+
+    for mem in memories:
+        if not is_similar(mem, unique):
+            unique.append(mem)
+
+    return unique
+
+
+
+
+
+Practical Advice for Ollama
+Use JSON-mode prompts wherever possible
+Set low temperature (0.1–0.3) for memory synthesis
+Use the same model initially to avoid cross-model drift
+Log every decision → future debugging gold
+
+
+JSON API design:
+
+Request: POST /v1/distill
+Minimal, future-proof request schema
+{
+  "source": {
+    "type": "chat | agent",
+    "id": "uuid"
+  },
+  "context": {
+    "text": "Full conversation transcript or agent trace as plain text"
+  },
+  "metadata": {
+    "user_id": "uuid",
+    "tenant_id": "uuid",
+    "started_at": "2026-01-10T14:22:00Z",
+    "ended_at": "2026-01-10T14:48:12Z"
+  },
+  "options": {
+    "max_memories": 10
+  }
+}
+Field-by-field rationale
+source
+Identifies what produced the experience.
+"source": {
+  "type": "chat | agent",
+  "id": "uuid"
+}
+Why:
+Enables different extraction behavior later
+Allows traceability back to original artifact
+Supports re-distillation if prompts evolve
+context.text
+"context": {
+  "text": "..."
+}
+Why:
+Keep it dead simple
+You already store structured messages elsewhere
+The distiller only needs semantic content
+You can later extend to:
+"context": {
+  "messages": [...],
+  "tool_calls": [...]
+}
+…but not now.
+metadata
+"metadata": {
+  "user_id": "uuid",
+  "tenant_id": "uuid",
+  "started_at": "...",
+  "ended_at": "..."
+}
+Why:
+Tenant scoping
+Time-based reasoning (recency matters)
+Enables future heuristics (e.g. short chats ≠ deep memory)
+options
+"options": {
+  "max_memories": 10
+}
+Why:
+Hard guardrail against memory spam
+Forces prioritization
+Useful for testing
+Default can be something sane like 5
+
+Response: 200 OK
+Clean, normalized output schema
+{
+  "source": {
+    "type": "chat",
+    "id": "uuid"
+  },
+  "memories": [
+    {
+      "type": "semantic | episodic | procedural",
+      "content": "Atomic, self-contained memory statement.",
+      "confidence": 0.87,
+      "importance": 0.72,
+      "tags": ["postgres", "pgvector"],
+      "justification": "User explicitly confirmed this fact."
+    }
+  ],
+  "stats": {
+    "events_analyzed": 14,
+    "memories_emitted": 3
+  }
+}
+Memory object (core of the system)
+{
+  "type": "semantic",
+  "content": "The system uses pgvector with PostgreSQL to store and retrieve vector embeddings.",
+  "confidence": 0.87,
+  "importance": 0.72,
+  "tags": ["postgres", "pgvector"],
+  "justification": "Repeated across multiple turns and not contradicted."
+}
+Required fields (do not drop)
+type
+content
+confidence
+importance
+Optional but strongly recommended
+tags → improves retrieval quality
+justification → debugging gold
+stats block
+"stats": {
+  "events_analyzed": 14,
+  "memories_emitted": 3
+}
+Why:
+Observability
+Helps tune prompts
+Lets you detect memory starvation or flooding

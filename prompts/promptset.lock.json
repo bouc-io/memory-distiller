@@ -1,0 +1,30 @@
+{
+  "prompts": {
+    "combined_eval": {
+      "hash": "d30a151a5a7487245ae0b4c9ad2dc6b963b59387b6e60962304f4bb17aa5644f",
+      "version": 1
+    },
+    "scoring": {
+      "hash": "cc430ab68c8673a187fa0d58064494da3d2f3b43c346950d4459e7e21e9da7e8",
+      "version": 1
+    },
+    "segmentation": {
+      "hash": "170f55ee3376ab0dd79c9f432a931a21907f4f36e5f06f30dc6eb6ce39ebe38f",
+      "version": 1
+    },
+    "synthesis": {
+      "hash": "6343f671f11f5a55c787313f18077ace237bd8e9d108f209f1de73925d50b5a0",
+      "version": 1
+    },
+    "system_preamble": {
+      "hash": "7266eaa1e4ea21f4905452e9d65992128440051e92ec19d235e8fc5f8ab469a2",
+      "version": 1
+    },
+    "worthiness": {
+      "hash": "d655ca584c87c3659a2e0c3d54f9a88e7b450ed8d3979e12511899ea0533cce0",
+      "version": 1
+    }
+  },
+  "promptset_hash": "f2bfd0d7705e3bdd2b714a3b25965f3e597ffcfe105f6bd8edf2610323767ae1",
+  "promptset_version": "1.0.0"
+}
