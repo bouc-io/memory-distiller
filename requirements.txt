@@ -4,7 +4,7 @@ uvicorn==0.27.1
 pydantic==2.6.1
 python-dotenv==1.2.2
 # Decode-only JWT handling for the bouc_admin gate on the prompt endpoints (auth.py).
-pyjwt==2.10.1
+pyjwt==2.15.0
 # Observability — OTLP traces+metrics to the OTel collector + a Prometheus /metrics endpoint.
 prometheus-client==0.20.0
 opentelemetry-sdk==1.25.0
